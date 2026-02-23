@@ -1,0 +1,17 @@
+{
+  "name": "iteration-engine",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "tsc && node dist/orchestrator.js",
+    "pipeline": "tsc && node dist/orchestrator.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
