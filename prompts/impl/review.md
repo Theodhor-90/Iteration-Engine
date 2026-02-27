@@ -7,7 +7,7 @@ Your job is to verify that the implementation matches the locked plan and task s
 Read the following files:
 
 1. **Locked Plan**: `{{PLAN_LOCKED_PATH}}` — the approved implementation plan
-2. **Implementation Notes**: `{{IMPL_NOTES_PATH}}` — the implementer's summary
+2. **Implementation Notes**: `{{DRAFT_PATH}}` — the implementer's summary
 3. **Task Spec**: `{{SPEC_PATH}}` — the task specification
 
 ## Review Process

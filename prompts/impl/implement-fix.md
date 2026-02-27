@@ -7,7 +7,7 @@ Your previous implementation was reviewed and issues were found. Fix them.
 Read the following files:
 
 1. **Locked Plan**: `{{PLAN_LOCKED_PATH}}` — the approved implementation plan
-2. **Review Feedback**: `{{REVIEW_PATH}}` — the reviewer's feedback with specific issues
+2. **Review Feedback**: `{{FEEDBACK_PATH}}` — the reviewer's feedback with specific issues
 3. **Task Spec**: `{{SPEC_PATH}}` — the task specification
 
 ## Your Task

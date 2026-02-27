@@ -23,4 +23,4 @@ Revise the milestone specification to address every point in the feedback.
 - Simplify if the feedback says you over-engineered
 - Add full details if the feedback says something is missing
 
-**CRITICAL**: Output a complete, standalone milestone specification — not a diff or patch. The output must be usable on its own.
+**CRITICAL**: Your entire text response will be saved directly as the specification file. Output the COMPLETE, STANDALONE milestone specification in clean markdown — not a diff, patch, summary, or description of changes. Do NOT include any preamble, commentary, or requests (e.g., "here's what I changed", "grant write permission"). Do NOT attempt to write files — just output the revised document itself.

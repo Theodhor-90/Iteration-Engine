@@ -29,5 +29,5 @@ Synthesize the best elements of all planning attempts while addressing the valid
 - Identify patterns in the feedback — recurring criticisms indicate real issues
 - Take the strongest elements from each plan
 - Where plans disagree, make a definitive decision and explain why
-- The output must be a complete, standalone implementation plan
-- Output clean markdown, no process chatter
+
+**CRITICAL**: Your entire text response will be saved directly as the plan file. Output ONLY the complete, standalone implementation plan in clean markdown. Do NOT include any preamble, analysis, summary, commentary, or requests (e.g., "here's my synthesis", "grant write permission", "tiebreaker decisions"). Do NOT attempt to write files — just output the document itself.

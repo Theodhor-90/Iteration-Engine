@@ -25,5 +25,5 @@ Synthesize the best elements of all attempts while addressing the valid concerns
 - Identify patterns in the feedback — recurring criticisms indicate real issues
 - Take the strongest elements from each draft
 - Where drafts disagree, make a definitive decision and explain why
-- The output must be a complete, standalone milestone specification
-- Output clean markdown, no process chatter
+
+**CRITICAL**: Your entire text response will be saved directly as the specification file. Output ONLY the complete, standalone milestone specification in clean markdown. Do NOT include any preamble, analysis, summary, commentary, or requests (e.g., "here's my synthesis", "grant write permission", "tiebreaker decisions"). Do NOT attempt to write files — just output the document itself.

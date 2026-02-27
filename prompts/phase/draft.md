@@ -28,4 +28,5 @@ Produce a comprehensive phase specification that includes:
 - Each task should have a clear, testable deliverable
 - Order tasks by dependency — earlier tasks should not depend on later ones
 - Be specific about contracts, interfaces, and technical choices
-- Output clean markdown, no process chatter
+
+**CRITICAL**: Your entire text response will be saved directly as the specification file. Output ONLY the specification content in clean markdown. Do NOT include any preamble, summary, commentary, or requests (e.g., "here's the spec", "grant write permission", "ready to be written"). Do NOT attempt to write files — just output the document itself.

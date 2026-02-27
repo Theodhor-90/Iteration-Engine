@@ -3,7 +3,8 @@ import { join } from "node:path";
 
 // ── Agent Identifiers ────────────────────────────────────────
 
-export type AgentId = "opus" | "codex";
+export type AgentId = "opus" | "sonnet" | "codex";
+export type ClaudeAgentId = "opus" | "sonnet";
 
 // ── Per-Level Agent Roles ────────────────────────────────────
 
@@ -38,12 +39,15 @@ export interface LevelConfig {
 
 // ── Agent Binary Configuration ───────────────────────────────
 
+export interface ClaudeAgentBinaryConfig {
+  bin: string;
+  model: string;
+  defaultMaxTurns: number;
+}
+
 export interface AgentBinaryConfig {
-  opus: {
-    bin: string;
-    model: string;
-    defaultMaxTurns: number;
-  };
+  opus: ClaudeAgentBinaryConfig;
+  sonnet: ClaudeAgentBinaryConfig;
   codex: {
     bin: string;
     defaultSandbox: "read-only" | "workspace-write";
@@ -95,6 +99,8 @@ export interface PipelineConfig {
 // ── Default Configuration ────────────────────────────────────
 
 const readOnlyTools = ["Read", "Glob", "Grep"];
+const implementationTools = ["Read", "Glob", "Grep", "Write", "Edit", "Bash"];
+const reviewTools = ["Read", "Glob", "Grep", "Bash"];
 
 const DEFAULTS: PipelineConfig = {
   project: "my-project",
@@ -104,13 +110,14 @@ const DEFAULTS: PipelineConfig = {
 
   agents: {
     opus: { bin: "claude", model: "opus", defaultMaxTurns: 25 },
+    sonnet: { bin: "claude", model: "sonnet", defaultMaxTurns: 25 },
     codex: { bin: "codex", defaultSandbox: "read-only" },
   },
 
   levels: {
     milestone: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 3,
+      maxIterations: 2,
       templates: {
         draft: "milestone/draft",
         challenge: "milestone/challenge",
@@ -124,7 +131,7 @@ const DEFAULTS: PipelineConfig = {
 
     phase: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 3,
+      maxIterations: 2,
       templates: {
         draft: "phase/draft",
         challenge: "phase/challenge",
@@ -138,7 +145,7 @@ const DEFAULTS: PipelineConfig = {
 
     task: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 3,
+      maxIterations: 2,
       templates: {
         draft: "task/draft",
         challenge: "task/challenge",
@@ -151,17 +158,17 @@ const DEFAULTS: PipelineConfig = {
     },
 
     implementation: {
-      agents: { creator: "codex", challenger: "codex", tiebreaker: "opus" },
-      maxIterations: 3,
+      agents: { creator: "sonnet", challenger: "sonnet", tiebreaker: "opus" },
+      maxIterations: 2,
       templates: {
         draft: "impl/implement",
         challenge: "impl/review",
         refine: "impl/implement-fix",
         tiebreak: "impl/tiebreak",
       },
-      creatorOptions: { sandbox: "workspace-write" },
-      challengerOptions: { sandbox: "workspace-write", schema: "review-decision.json" },
-      tiebreakerOptions: { sandbox: "workspace-write" },
+      creatorOptions: { tools: implementationTools, sandbox: "workspace-write", maxTurns: 40 },
+      challengerOptions: { tools: reviewTools, sandbox: "workspace-write", schema: "review-decision.json" },
+      tiebreakerOptions: { tools: implementationTools, sandbox: "workspace-write", maxTurns: 40 },
     },
   },
 

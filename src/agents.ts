@@ -1,8 +1,8 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { readFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type AgentId, type AgentCallOptions, CONFIG, DRY_RUN } from "./config.js";
+import { type AgentId, type ClaudeAgentId, type AgentCallOptions, CONFIG, DRY_RUN } from "./config.js";
 import { parseDecision, type Decision } from "./schemas.js";
 import { log } from "./logger.js";
 
@@ -10,9 +10,9 @@ import { log } from "./logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PROJECT_ROOT = join(__dirname, "..");
-const SCHEMAS_DIR = join(PROJECT_ROOT, "schemas");
-const TMP_DIR = join(PROJECT_ROOT, ".pipeline", "tmp");
+const ENGINE_ROOT = join(__dirname, "..");
+const SCHEMAS_DIR = join(ENGINE_ROOT, "schemas");
+const TMP_DIR = join(ENGINE_ROOT, ".pipeline", "tmp");
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -33,18 +33,20 @@ export function callAgentStructured<T>(
     return { items: [] } as unknown as T;
   }
 
-  if (agentId !== "opus") {
-    throw new Error("callAgentStructured only supports opus agent");
+  if (agentId !== "opus" && agentId !== "sonnet") {
+    throw new Error("callAgentStructured only supports Claude agents (opus, sonnet)");
   }
 
-  const { tools = [], maxTurns = CONFIG.agents.opus.defaultMaxTurns, schema } = options;
+  const claudeId = agentId as ClaudeAgentId;
+  const agentCfg = CONFIG.agents[claudeId];
+  const { tools = [], maxTurns = agentCfg.defaultMaxTurns, schema } = options;
   const schemaContent = readFileSync(join(SCHEMAS_DIR, schema), "utf-8");
 
   const args: string[] = [
     "-p",
     prompt,
     "--model",
-    CONFIG.agents.opus.model,
+    agentCfg.model,
     "--output-format",
     "json",
     "--max-turns",
@@ -60,12 +62,11 @@ export function callAgentStructured<T>(
   log(
     "",
     "cli",
-    `claude -p structured (tools: ${tools.join(",") || "none"}, schema: ${schema})`,
+    `claude -p structured [${claudeId}] (tools: ${tools.join(",") || "none"}, schema: ${schema})`,
   );
 
-  const res = spawnSync(CONFIG.agents.opus.bin, args, {
-    cwd: PROJECT_ROOT,
-    encoding: "utf-8",
+  const res = spawnSyncGroup(agentCfg.bin, args, {
+    cwd: process.cwd(),
     maxBuffer: 20 * 1024 * 1024,
     timeout: CONFIG.timeoutMs,
     env: cleanEnv(),
@@ -152,6 +153,42 @@ function cleanEnv(): Record<string, string | undefined> {
   return env;
 }
 
+// ── Process-Group-Aware Spawn ────────────────────────────────
+
+function shellEscape(arg: string): string {
+  return "'" + arg.replace(/'/g, "'\\''") + "'";
+}
+
+function spawnSyncGroup(
+  command: string,
+  args: string[],
+  options: {
+    cwd?: string;
+    maxBuffer?: number;
+    timeout?: number;
+    env?: Record<string, string | undefined>;
+  },
+): SpawnSyncReturns<string> {
+  const escaped = [command, ...args].map(shellEscape).join(" ");
+  const script = [
+    "set -m",
+    `${escaped} &`,
+    "CHILD=$!",
+    "trap 'kill -- -\"$CHILD\" 2>/dev/null; wait \"$CHILD\" 2>/dev/null; exit 143' TERM",
+    "trap 'kill -INT -- -\"$CHILD\" 2>/dev/null; wait \"$CHILD\" 2>/dev/null; exit 130' INT",
+    "wait \"$CHILD\"",
+    "exit $?",
+  ].join("\n");
+
+  return spawnSync("/bin/sh", ["-c", script], {
+    cwd: options.cwd,
+    encoding: "utf-8",
+    maxBuffer: options.maxBuffer,
+    timeout: options.timeout,
+    env: options.env as NodeJS.ProcessEnv,
+  });
+}
+
 // ── Unified Agent Dispatch ───────────────────────────────────
 
 export function callAgent(
@@ -159,27 +196,28 @@ export function callAgent(
   prompt: string,
   options: AgentCallOptions = {},
 ): CliResult {
-  if (agentId === "opus") {
-    return callClaude(prompt, options);
+  if (agentId === "opus" || agentId === "sonnet") {
+    return callClaude(agentId, prompt, options);
   }
   return callCodex(prompt, options);
 }
 
 // ── Claude Wrapper ───────────────────────────────────────────
 
-function callClaude(prompt: string, options: AgentCallOptions): CliResult {
+function callClaude(claudeId: ClaudeAgentId, prompt: string, options: AgentCallOptions): CliResult {
   if (DRY_RUN) {
-    return mockCliCall("claude", prompt, !!options.schema);
+    return mockCliCall(`claude:${claudeId}`, prompt, !!options.schema);
   }
 
-  const { tools = [], maxTurns = CONFIG.agents.opus.defaultMaxTurns, schema } = options;
+  const agentCfg = CONFIG.agents[claudeId];
+  const { tools = [], maxTurns = agentCfg.defaultMaxTurns, schema } = options;
   const isDecision = !!schema;
 
   const args: string[] = [
     "-p",
     prompt,
     "--model",
-    CONFIG.agents.opus.model,
+    agentCfg.model,
     "--output-format",
     isDecision ? "json" : "text",
     "--max-turns",
@@ -198,12 +236,11 @@ function callClaude(prompt: string, options: AgentCallOptions): CliResult {
   log(
     "",
     "cli",
-    `claude -p (tools: ${tools.join(",") || "none"}, max-turns: ${maxTurns}, schema: ${schema || "none"})`,
+    `claude -p [${claudeId}] (tools: ${tools.join(",") || "none"}, max-turns: ${maxTurns}, schema: ${schema || "none"})`,
   );
 
-  const res = spawnSync(CONFIG.agents.opus.bin, args, {
-    cwd: PROJECT_ROOT,
-    encoding: "utf-8",
+  const res = spawnSyncGroup(agentCfg.bin, args, {
+    cwd: process.cwd(),
     maxBuffer: 20 * 1024 * 1024,
     timeout: CONFIG.timeoutMs,
     env: cleanEnv(),
@@ -275,9 +312,8 @@ function callCodex(prompt: string, options: AgentCallOptions): CliResult {
 
   log("", "cli", `codex exec (sandbox: ${sandbox}, schema: ${schema || "none"})`);
 
-  const res = spawnSync(CONFIG.agents.codex.bin, args, {
-    cwd: PROJECT_ROOT,
-    encoding: "utf-8",
+  const res = spawnSyncGroup(CONFIG.agents.codex.bin, args, {
+    cwd: process.cwd(),
     maxBuffer: 20 * 1024 * 1024,
     timeout: CONFIG.timeoutMs,
     env: cleanEnv(),

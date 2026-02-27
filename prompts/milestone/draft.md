@@ -26,4 +26,5 @@ Produce a comprehensive milestone specification that includes:
 - Do not add features or scope beyond what the master plan specifies for this milestone
 - Be specific and actionable — avoid vague language
 - Each phase should represent a coherent, independently deliverable unit of work
-- Output clean markdown, no process chatter
+
+**CRITICAL**: Your entire text response will be saved directly as the specification file. Output ONLY the specification content in clean markdown. Do NOT include any preamble, summary, commentary, or requests (e.g., "here's the spec", "grant write permission", "ready to be written"). Do NOT attempt to write files — just output the document itself.

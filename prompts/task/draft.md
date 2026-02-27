@@ -34,4 +34,5 @@ Produce a detailed implementation plan that includes:
 - Be precise — someone should be able to implement every file from your plan alone
 - Do not over-engineer — implement only what the task spec requires
 - Follow existing codebase conventions (check existing files for patterns)
-- Output clean markdown, no process chatter
+
+**CRITICAL**: Your entire text response will be saved directly as the plan file. Output ONLY the implementation plan in clean markdown. Do NOT include any preamble, summary, commentary, or requests (e.g., "here's the plan", "grant write permission", "ready to be written"). Do NOT attempt to write files — just output the document itself.
