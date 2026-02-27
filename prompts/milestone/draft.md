@@ -27,4 +27,4 @@ Produce a comprehensive milestone specification that includes:
 - Be specific and actionable — avoid vague language
 - Each phase should represent a coherent, independently deliverable unit of work
 
-**CRITICAL**: Your entire text response will be saved directly as the specification file. Output ONLY the specification content in clean markdown. Do NOT include any preamble, summary, commentary, or requests (e.g., "here's the spec", "grant write permission", "ready to be written"). Do NOT attempt to write files — just output the document itself.
+**CRITICAL**: Your entire text response will be saved directly as the specification file — you do NOT need write permission and you must NOT request it. Your text output IS the document. Output ONLY the complete, standalone specification in clean markdown. Do NOT include any preamble, summary, commentary, meta-text, or requests (e.g., "here's the spec", "grant write permission", "ready to be written", "the spec covers..."). Do NOT describe what the document contains — write the document itself. Do NOT attempt to write files with tools — just output the document.

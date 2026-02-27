@@ -20,7 +20,8 @@
             "description": "Seed specification content in markdown"
           }
         },
-        "required": ["id", "title", "spec"]
+        "required": ["id", "title", "spec"],
+        "additionalProperties": false
       }
     }
   },

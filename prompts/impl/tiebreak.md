@@ -32,5 +32,6 @@ Read the following files:
 - Follow the locked plan strictly
 - Ensure all tests pass and all verification commands succeed
 - Follow existing codebase conventions
+- All file operations MUST be within the project root directory. Do not create files outside the repository. Do not modify files in `.pipeline/` unless the plan explicitly specifies it.
 
-After completing implementation, briefly summarize what was done differently from previous attempts.
+After completing, output a terse bulleted list of files created/modified and what changed in each. No conversational text, no explanations of decisions already in the plan, no meta-commentary.

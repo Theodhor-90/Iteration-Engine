@@ -16,8 +16,9 @@ Read the following files:
 2. Read the implementation notes to understand what was done
 3. Inspect the actual source files to verify correctness
 4. Run the verification commands from the plan
-5. Check for security issues (OWASP top 10)
-6. Verify completeness against the task spec's exit criteria
+5. Run the project's standard test and build commands (e.g., `npm test`, `npm run build`) regardless of what the plan specifies. If these commands don't exist, note that as an issue.
+6. Check for security issues (OWASP top 10)
+7. Verify completeness against the task spec's exit criteria
 
 ## Verification Checklist
 
@@ -27,10 +28,13 @@ Read the following files:
 - [ ] Build succeeds
 - [ ] No security vulnerabilities introduced
 - [ ] Code follows existing codebase conventions
+- [ ] Tests are meaningful — each test imports implementation modules and verifies real behavior (no tautological assertions)
 
 ## Output
 
 Respond with a JSON object:
 - `verdict`: `"approved"` if the implementation is correct, `"needs_revision"` if not
 - `feedback`: brief summary if approved, specific issues if needs revision
-- `issues`: array of `{ "file": "path", "description": "issue" }` (only if needs_revision)
+- `issues`: array of `{ "file": "path", "severity": "critical|major|minor", "description": "issue" }` (only if needs_revision)
+
+**CRITICAL**: Your entire response must be ONLY the JSON object. Do NOT include any preamble, commentary, explanation, or markdown formatting outside the JSON. Output the raw JSON object and nothing else.

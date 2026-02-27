@@ -5,12 +5,13 @@ import { log } from "./logger.js";
 export interface ChallengeDecision {
   verdict: "approved" | "needs_revision";
   feedback: string;
+  issues?: { category: string; description: string }[];
 }
 
 export interface ReviewDecision {
   verdict: "approved" | "needs_revision";
   feedback: string;
-  issues?: { file: string; description: string }[];
+  issues?: { file: string; severity: string; description: string }[];
 }
 
 export type Decision = ChallengeDecision | ReviewDecision;

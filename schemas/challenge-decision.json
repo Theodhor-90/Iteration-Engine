@@ -7,9 +7,27 @@
     },
     "feedback": {
       "type": "string",
-      "description": "Empty if approved. Specific, actionable feedback if needs_revision."
+      "description": "Empty if approved. Brief summary of issues if needs_revision."
+    },
+    "issues": {
+      "type": "array",
+      "description": "Structured list of issues. Empty array if approved.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["scope", "completeness", "ambiguity", "correctness", "format"]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["category", "description"],
+        "additionalProperties": false
+      }
     }
   },
-  "required": ["verdict", "feedback"],
+  "required": ["verdict", "feedback", "issues"],
   "additionalProperties": false
 }

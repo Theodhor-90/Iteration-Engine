@@ -26,5 +26,7 @@ Fix every issue identified in the review feedback:
 - If tests are failing, fix the root cause — do not modify tests
 - Follow existing codebase conventions
 - Run all verification commands after fixing
+- All file operations MUST be within the project root directory. Do not create files outside the repository. Do not modify files in `.pipeline/` unless the plan explicitly specifies it.
+- Prioritize fixes by severity: address all critical and major issues first. Minor issues are optional but recommended.
 
-After completing fixes, briefly summarize what was changed.
+After completing, output a terse bulleted list of files created/modified and what changed in each. No conversational text, no explanations of decisions already in the plan, no meta-commentary.

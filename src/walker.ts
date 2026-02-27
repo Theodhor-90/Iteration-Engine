@@ -45,6 +45,7 @@ export function walk(state: PipelineState): PipelineState {
     if (milestone.status === "completed") continue;
 
     state.currentMilestone = milestoneId;
+    const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
 
     // ── Milestone Planning Cycle ─────────────────────────────
     if (milestone.status === "pending" || milestone.status === "planning") {
@@ -53,7 +54,6 @@ export function walk(state: PipelineState): PipelineState {
         checkpoint(statePath, state, `milestone ${milestoneId} → planning`);
       }
 
-      const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
       const result = runIterationCycle({
         label: milestoneId,
         level: "milestone",
@@ -72,7 +72,9 @@ export function walk(state: PipelineState): PipelineState {
 
       milestone.planning.tiebreakerUsed = result.tiebreakerUsed;
       milestone.planning.iteration = result.iterations;
-      milestone.planning.totalAttempts += result.iterations;
+      if (result.iterations > 0) {
+        milestone.planning.totalAttempts += result.iterations;
+      }
 
       transitionMilestone(state, milestoneId, "spec_locked");
       checkpoint(statePath, state, `milestone ${milestoneId} spec locked`);
@@ -80,7 +82,6 @@ export function walk(state: PipelineState): PipelineState {
 
     // ── Scaffold Phases from locked spec ─────────────────────
     if (milestone.status === "spec_locked") {
-      const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
       scaffoldPhases(milestoneDir, state, milestoneId);
       checkpoint(statePath, state, `milestone ${milestoneId} phases scaffolded`);
       transitionMilestone(state, milestoneId, "in_progress");
@@ -101,7 +102,6 @@ export function walk(state: PipelineState): PipelineState {
           checkpoint(statePath, state, `phase ${milestoneId}/${phaseId} → planning`);
         }
 
-        const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
         const phaseDir = join(milestoneDir, "phases", phaseId);
         const result = runIterationCycle({
           label: `${milestoneId}/${phaseId}`,
@@ -122,7 +122,9 @@ export function walk(state: PipelineState): PipelineState {
 
         phase.planning.tiebreakerUsed = result.tiebreakerUsed;
         phase.planning.iteration = result.iterations;
-        phase.planning.totalAttempts += result.iterations;
+        if (result.iterations > 0) {
+          phase.planning.totalAttempts += result.iterations;
+        }
 
         transitionPhase(state, milestoneId, phaseId, "spec_locked");
         checkpoint(statePath, state, `phase ${milestoneId}/${phaseId} spec locked`);
@@ -130,7 +132,6 @@ export function walk(state: PipelineState): PipelineState {
 
       // ── Scaffold Tasks from locked spec ───────────────────
       if (phase.status === "spec_locked") {
-        const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
         const phaseDir = join(milestoneDir, "phases", phaseId);
         scaffoldTasks(phaseDir, state, milestoneId, phaseId);
         checkpoint(statePath, state, `phase ${milestoneId}/${phaseId} tasks scaffolded`);
@@ -147,7 +148,6 @@ export function walk(state: PipelineState): PipelineState {
         if (task.status === "completed") continue;
 
         phase.currentTask = taskId;
-        const milestoneDir = join(CONFIG.pipelineDir, "milestones", milestoneId);
         const phaseDir = join(milestoneDir, "phases", phaseId);
         const taskDir = join(phaseDir, "tasks", taskId);
 
@@ -186,7 +186,9 @@ export function walk(state: PipelineState): PipelineState {
 
           task.planning.tiebreakerUsed = result.tiebreakerUsed;
           task.planning.iteration = result.iterations;
-          task.planning.totalAttempts += result.iterations;
+          if (result.iterations > 0) {
+            task.planning.totalAttempts += result.iterations;
+          }
 
           transitionTask(state, milestoneId, phaseId, taskId, "plan_locked");
           checkpoint(
@@ -231,7 +233,9 @@ export function walk(state: PipelineState): PipelineState {
 
           task.implementation.tiebreakerUsed = result.tiebreakerUsed;
           task.implementation.iteration = result.iterations;
-          task.implementation.totalAttempts += result.iterations;
+          if (result.iterations > 0) {
+            task.implementation.totalAttempts += result.iterations;
+          }
 
           transitionTask(state, milestoneId, phaseId, taskId, "completed");
           checkpoint(
@@ -247,7 +251,7 @@ export function walk(state: PipelineState): PipelineState {
       }
 
       // ── Phase Complete ─────────────────────────────────────
-      phase.status = "completed";
+      transitionPhase(state, milestoneId, phaseId, "completed");
       phase.currentTask = null;
       checkpoint(statePath, state, `phase ${milestoneId}/${phaseId} completed`);
 
@@ -261,7 +265,7 @@ export function walk(state: PipelineState): PipelineState {
     }
 
     // ── Milestone Complete ───────────────────────────────────
-    milestone.status = "completed";
+    transitionMilestone(state, milestoneId, "completed");
     milestone.currentPhase = null;
     checkpoint(statePath, state, `milestone ${milestoneId} completed`);
   }
@@ -273,6 +277,8 @@ export function walk(state: PipelineState): PipelineState {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+const MAX_SIBLINGS_CHARS = 12_000; // ~3000 tokens
+
 function buildCompletedSiblingsSection(
   state: PipelineState,
   milestoneId: string,
@@ -281,9 +287,10 @@ function buildCompletedSiblingsSection(
 ): string {
   const phase = getPhase(state, milestoneId, phaseId);
   const lines: string[] = [];
+  let totalChars = 0;
 
   for (const taskId of sortedKeys(phase.tasks)) {
-    if (taskId === currentTaskId) break; // Only include tasks before current
+    if (taskId === currentTaskId) break;
     const task = phase.tasks[taskId];
     if (task.status !== "completed") continue;
 
@@ -299,11 +306,25 @@ function buildCompletedSiblingsSection(
     );
 
     if (existsSync(planPath)) {
-      const content = readFileSync(planPath, "utf-8");
-      lines.push(`### Task ${taskId} (completed)\n\n${content}\n`);
+      const full = readFileSync(planPath, "utf-8");
+      const summary = extractDeliverables(full);
+      if (totalChars + summary.length > MAX_SIBLINGS_CHARS) {
+        lines.push(`### Task ${taskId} (completed)\n\n(Truncated — context budget reached)\n`);
+        break;
+      }
+      lines.push(`### Task ${taskId} (completed)\n\n${summary}\n`);
+      totalChars += summary.length;
     }
   }
 
   if (lines.length === 0) return "";
   return `## Completed Sibling Tasks\n\n${lines.join("\n")}`;
+}
+
+function extractDeliverables(planContent: string): string {
+  const match = planContent.match(/## 1\. Deliverables\s*\n([\s\S]*?)(?=\n## \d|$)/);
+  if (match) {
+    return `**Deliverables:**\n${match[1].trim()}`;
+  }
+  return planContent.substring(0, 2000) + (planContent.length > 2000 ? "\n..." : "");
 }

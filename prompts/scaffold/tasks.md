@@ -32,3 +32,4 @@ The spec must contain enough context for a planning agent to later produce a det
 - Each task spec should be self-contained and actionable
 - Tasks should be ordered by dependency — earlier tasks should not depend on later ones
 - Output only the structured JSON, no commentary
+- After extraction, verify that the number of items you produced matches exactly the number defined in the source document. If there is a mismatch, re-read the source and correct your output.

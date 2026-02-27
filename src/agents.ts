@@ -65,23 +65,30 @@ export function callAgentStructured<T>(
     `claude -p structured [${claudeId}] (tools: ${tools.join(",") || "none"}, schema: ${schema})`,
   );
 
-  const res = spawnSyncGroup(agentCfg.bin, args, {
-    cwd: process.cwd(),
-    maxBuffer: 20 * 1024 * 1024,
-    timeout: CONFIG.timeoutMs,
-    env: cleanEnv(),
+  return withRetry(`claude:structured`, () => {
+    const res = spawnSyncGroup(agentCfg.bin, args, {
+      cwd: process.cwd(),
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: CONFIG.timeoutMs,
+      env: cleanEnv(),
+    });
+
+    if (res.error && res.error.message.includes("maxBuffer")) {
+      throw new Error(
+        `Agent produced too much output (>20MB). This likely indicates an infinite loop or excessive verbosity. Original error: ${res.error.message}`,
+      );
+    }
+    if (res.error) {
+      throw new Error(`claude failed: ${res.error.message}`);
+    }
+    if (res.status !== 0) {
+      const stderr = res.stderr?.slice(0, 500) || "";
+      throw new Error(`claude exited with code ${res.status}: ${stderr}`);
+    }
+
+    const stdout = (res.stdout || "").trim();
+    return parseStructuredOutput<T>(stdout);
   });
-
-  if (res.error) {
-    throw new Error(`claude failed: ${res.error.message}`);
-  }
-  if (res.status !== 0) {
-    const stderr = res.stderr?.slice(0, 500) || "";
-    throw new Error(`claude exited with code ${res.status}: ${stderr}`);
-  }
-
-  const stdout = (res.stdout || "").trim();
-  return parseStructuredOutput<T>(stdout);
 }
 
 function parseStructuredOutput<T>(stdout: string): T {
@@ -189,6 +196,39 @@ function spawnSyncGroup(
   });
 }
 
+// ── Retry Logic ─────────────────────────────────────────────
+
+function isRetryable(error: Error): boolean {
+  const msg = error.message.toLowerCase();
+  return CONFIG.retry.retryableErrors.some(
+    (pattern) => msg.includes(pattern.toLowerCase()),
+  );
+}
+
+function withRetry<T>(label: string, fn: () => T): T {
+  const { maxRetries, baseDelayMs } = CONFIG.retry;
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return fn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      if (attempt < maxRetries && isRetryable(lastError)) {
+        const delayMs = baseDelayMs * 2 ** attempt;
+        log("", "cli", `${label} failed (${lastError.message}), retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+        const end = Date.now() + delayMs;
+        while (Date.now() < end) { /* busy wait — spawnSync context, no async */ }
+      } else {
+        throw lastError;
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
 // ── Unified Agent Dispatch ───────────────────────────────────
 
 export function callAgent(
@@ -239,28 +279,35 @@ function callClaude(claudeId: ClaudeAgentId, prompt: string, options: AgentCallO
     `claude -p [${claudeId}] (tools: ${tools.join(",") || "none"}, max-turns: ${maxTurns}, schema: ${schema || "none"})`,
   );
 
-  const res = spawnSyncGroup(agentCfg.bin, args, {
-    cwd: process.cwd(),
-    maxBuffer: 20 * 1024 * 1024,
-    timeout: CONFIG.timeoutMs,
-    env: cleanEnv(),
+  return withRetry(`claude:${claudeId}`, () => {
+    const res = spawnSyncGroup(agentCfg.bin, args, {
+      cwd: process.cwd(),
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: CONFIG.timeoutMs,
+      env: cleanEnv(),
+    });
+
+    if (res.error && res.error.message.includes("maxBuffer")) {
+      throw new Error(
+        `Agent produced too much output (>20MB). This likely indicates an infinite loop or excessive verbosity. Original error: ${res.error.message}`,
+      );
+    }
+    if (res.error) {
+      throw new Error(`claude failed: ${res.error.message}`);
+    }
+    if (res.status !== 0) {
+      const stderr = res.stderr?.slice(0, 500) || "";
+      throw new Error(`claude exited with code ${res.status}: ${stderr}`);
+    }
+
+    const stdout = (res.stdout || "").trim();
+
+    if (!isDecision) {
+      return { raw: stdout };
+    }
+
+    return parseClaudeDecision(stdout, schema!);
   });
-
-  if (res.error) {
-    throw new Error(`claude failed: ${res.error.message}`);
-  }
-  if (res.status !== 0) {
-    const stderr = res.stderr?.slice(0, 500) || "";
-    throw new Error(`claude exited with code ${res.status}: ${stderr}`);
-  }
-
-  const stdout = (res.stdout || "").trim();
-
-  if (!isDecision) {
-    return { raw: stdout };
-  }
-
-  return parseClaudeDecision(stdout, schema!);
 }
 
 function parseClaudeDecision(stdout: string, schema: string): CliResult {
@@ -312,28 +359,35 @@ function callCodex(prompt: string, options: AgentCallOptions): CliResult {
 
   log("", "cli", `codex exec (sandbox: ${sandbox}, schema: ${schema || "none"})`);
 
-  const res = spawnSyncGroup(CONFIG.agents.codex.bin, args, {
-    cwd: process.cwd(),
-    maxBuffer: 20 * 1024 * 1024,
-    timeout: CONFIG.timeoutMs,
-    env: cleanEnv(),
+  return withRetry("codex", () => {
+    const res = spawnSyncGroup(CONFIG.agents.codex.bin, args, {
+      cwd: process.cwd(),
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: CONFIG.timeoutMs,
+      env: cleanEnv(),
+    });
+
+    if (res.error && res.error.message.includes("maxBuffer")) {
+      throw new Error(
+        `Agent produced too much output (>20MB). This likely indicates an infinite loop or excessive verbosity. Original error: ${res.error.message}`,
+      );
+    }
+    if (res.error) {
+      throw new Error(`codex failed: ${res.error.message}`);
+    }
+    if (res.status !== 0) {
+      const stderr = res.stderr?.slice(0, 500) || "";
+      throw new Error(`codex exited with code ${res.status}: ${stderr}`);
+    }
+
+    const stdout = (res.stdout || "").trim();
+
+    if (!isDecision) {
+      return { raw: stdout };
+    }
+
+    return parseCodexDecision(outputFile!, stdout, schema!);
   });
-
-  if (res.error) {
-    throw new Error(`codex failed: ${res.error.message}`);
-  }
-  if (res.status !== 0) {
-    const stderr = res.stderr?.slice(0, 500) || "";
-    throw new Error(`codex exited with code ${res.status}: ${stderr}`);
-  }
-
-  const stdout = (res.stdout || "").trim();
-
-  if (!isDecision) {
-    return { raw: stdout };
-  }
-
-  return parseCodexDecision(outputFile!, stdout, schema!);
 }
 
 function parseCodexDecision(outputFile: string, stdout: string, schema: string): CliResult {

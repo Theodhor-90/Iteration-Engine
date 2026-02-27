@@ -64,7 +64,15 @@ export function runIterationCycle(ctx: CycleContext): CycleResult {
     };
   }
 
+  const cycleStart = Date.now();
+  const cycleBudget = levelConfig.cycleBudgetMs;
+
   for (let i = 1; i <= maxIterations; i++) {
+    if (cycleBudget && (Date.now() - cycleStart) > cycleBudget) {
+      log(label, level, `Cycle budget exhausted (${cycleBudget}ms) — jumping to tiebreaker`);
+      break;
+    }
+
     const draftFile = join(artifactDir, `${artifactNames.draftPrefix}${i}.md`);
     const feedbackFile = join(artifactDir, `${artifactNames.feedbackPrefix}${i}.md`);
 
@@ -159,6 +167,19 @@ export function runIterationCycle(ctx: CycleContext): CycleResult {
 
   log(label, level, `All ${maxIterations} iterations rejected — invoking tiebreaker`);
 
+  const tiebreakFile = join(artifactDir, "tiebreak.md");
+
+  // Resume check: if tiebreak already produced, just copy and return
+  if (existsSync(tiebreakFile)) {
+    log(label, level, "Tiebreak artifact exists on disk — skipping agent call");
+    copyFileSync(tiebreakFile, lockedPath);
+    return {
+      artifact: readFileSync(lockedPath, "utf-8"),
+      iterations: maxIterations,
+      tiebreakerUsed: true,
+    };
+  }
+
   const allDraftPaths: string[] = [];
   const allFeedbackPaths: string[] = [];
   for (let i = 1; i <= maxIterations; i++) {
@@ -176,7 +197,6 @@ export function runIterationCycle(ctx: CycleContext): CycleResult {
 
   const tiebreakResult = callAgent(agents.tiebreaker, tiebreakPrompt, tiebreakerOptions);
 
-  const tiebreakFile = join(artifactDir, "tiebreak.md");
   writeFileSync(tiebreakFile, tiebreakResult.raw, "utf-8");
   copyFileSync(tiebreakFile, lockedPath);
 

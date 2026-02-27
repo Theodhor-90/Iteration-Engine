@@ -28,5 +28,7 @@ Implement everything described in the locked plan:
 - Do not add comments, docstrings, or type annotations beyond what the plan specifies
 - Follow existing codebase conventions
 - Run all verification commands and ensure they pass
+- All file operations MUST be within the project root directory. Do not create files outside the repository. Do not modify files in `.pipeline/` unless the plan explicitly specifies it.
+- Tests must exercise actual implementation code. Each test must import modules from the deliverables and verify behavior described in the plan. Do not write trivial or tautological tests (e.g., `expect(true).toBe(true)`).
 
-After completing implementation, briefly summarize what was done.
+After completing, output a terse bulleted list of files created/modified and what changed in each. No conversational text, no explanations of decisions already in the plan, no meta-commentary.

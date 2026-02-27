@@ -46,6 +46,13 @@ export function scaffoldMilestones(): ScaffoldItem[] {
     scaffold.options,
   );
 
+  if (result.items.length === 0) {
+    throw new Error(
+      "Milestone scaffolding produced zero milestones. " +
+      `Check the master plan at ${CONFIG.masterPlanFile}.`,
+    );
+  }
+
   mkdirSync(milestonesDir, { recursive: true });
 
   for (const item of result.items) {
@@ -100,6 +107,13 @@ export function scaffoldPhases(
     prompt,
     scaffold.options,
   );
+
+  if (result.items.length === 0) {
+    throw new Error(
+      `Phase scaffolding for milestone ${milestoneId} produced zero phases. ` +
+      `Check the locked milestone spec at ${milestoneSpecPath}.`,
+    );
+  }
 
   const phasesDir = join(milestoneDir, "phases");
   mkdirSync(phasesDir, { recursive: true });
@@ -158,6 +172,13 @@ export function scaffoldTasks(
     prompt,
     scaffold.options,
   );
+
+  if (result.items.length === 0) {
+    throw new Error(
+      `Task scaffolding for phase ${milestoneId}/${phaseId} produced zero tasks. ` +
+      `Check the locked phase spec at ${phaseSpecPath}.`,
+    );
+  }
 
   const tasksDir = join(phaseDir, "tasks");
   mkdirSync(tasksDir, { recursive: true });

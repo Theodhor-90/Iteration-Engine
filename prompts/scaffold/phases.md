@@ -29,3 +29,4 @@ The spec must contain enough context for a planning agent to later produce a ful
 - Preserve the ordering from the milestone spec
 - The spec should be self-contained for this phase's scope
 - Output only the structured JSON, no commentary
+- After extraction, verify that the number of items you produced matches exactly the number defined in the source document. If there is a mismatch, re-read the source and correct your output.

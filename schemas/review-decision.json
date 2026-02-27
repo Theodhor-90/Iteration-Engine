@@ -16,9 +16,13 @@
         "type": "object",
         "properties": {
           "file": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "major", "minor"]
+          },
           "description": { "type": "string" }
         },
-        "required": ["file", "description"],
+        "required": ["file", "severity", "description"],
         "additionalProperties": false
       }
     }

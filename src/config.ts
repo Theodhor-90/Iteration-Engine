@@ -26,6 +26,7 @@ export interface AgentCallOptions {
 export interface LevelConfig {
   agents: LevelAgentConfig;
   maxIterations: number;
+  cycleBudgetMs?: number;
   templates: {
     draft: string;
     challenge: string;
@@ -85,6 +86,11 @@ export interface PipelineConfig {
   masterPlanFile: string;
   pipelineDir: string;
   timeoutMs: number;
+  retry: {
+    maxRetries: number;
+    baseDelayMs: number;
+    retryableErrors: string[];
+  };
   agents: AgentBinaryConfig;
   levels: {
     milestone: LevelConfig;
@@ -108,6 +114,12 @@ const DEFAULTS: PipelineConfig = {
   pipelineDir: ".pipeline",
   timeoutMs: 20 * 60_000,
 
+  retry: {
+    maxRetries: 2,
+    baseDelayMs: 10_000,
+    retryableErrors: ["ETIMEDOUT", "ECONNRESET", "ENOTFOUND", "EPIPE", "socket hang up"],
+  },
+
   agents: {
     opus: { bin: "claude", model: "opus", defaultMaxTurns: 25 },
     sonnet: { bin: "claude", model: "sonnet", defaultMaxTurns: 25 },
@@ -117,7 +129,7 @@ const DEFAULTS: PipelineConfig = {
   levels: {
     milestone: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 2,
+      maxIterations: 3,
       templates: {
         draft: "milestone/draft",
         challenge: "milestone/challenge",
@@ -131,7 +143,7 @@ const DEFAULTS: PipelineConfig = {
 
     phase: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 2,
+      maxIterations: 3,
       templates: {
         draft: "phase/draft",
         challenge: "phase/challenge",
@@ -145,7 +157,7 @@ const DEFAULTS: PipelineConfig = {
 
     task: {
       agents: { creator: "opus", challenger: "opus", tiebreaker: "opus" },
-      maxIterations: 2,
+      maxIterations: 3,
       templates: {
         draft: "task/draft",
         challenge: "task/challenge",
@@ -167,7 +179,7 @@ const DEFAULTS: PipelineConfig = {
         tiebreak: "impl/tiebreak",
       },
       creatorOptions: { tools: implementationTools, sandbox: "workspace-write", maxTurns: 40 },
-      challengerOptions: { tools: reviewTools, sandbox: "workspace-write", schema: "review-decision.json" },
+      challengerOptions: { tools: reviewTools, sandbox: "read-only", schema: "review-decision.json" },
       tiebreakerOptions: { tools: implementationTools, sandbox: "workspace-write", maxTurns: 40 },
     },
   },
@@ -245,7 +257,33 @@ export function resolveConfig(overrides?: Partial<PipelineConfig>): PipelineConf
   if (overrides) {
     CONFIG = deepMerge(CONFIG as unknown as Record<string, unknown>, overrides as unknown as Record<string, unknown>) as unknown as PipelineConfig;
   }
+  validateConfig(CONFIG);
   return CONFIG;
+}
+
+function validateConfig(config: PipelineConfig): void {
+  const errors: string[] = [];
+
+  for (const level of ["milestone", "phase", "task", "implementation"] as const) {
+    const lc = config.levels[level];
+    if (typeof lc.maxIterations !== "number" || lc.maxIterations < 1) {
+      errors.push(`levels.${level}.maxIterations must be a positive number`);
+    }
+    const validAgents = ["opus", "sonnet", "codex"];
+    for (const role of ["creator", "challenger", "tiebreaker"] as const) {
+      if (!validAgents.includes(lc.agents[role])) {
+        errors.push(`levels.${level}.agents.${role} must be one of: ${validAgents.join(", ")}`);
+      }
+    }
+  }
+
+  if (typeof config.timeoutMs !== "number" || config.timeoutMs < 1000) {
+    errors.push("timeoutMs must be a number >= 1000");
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Invalid pipeline configuration:\n  - ${errors.join("\n  - ")}`);
+  }
 }
 
 export { CONFIG };

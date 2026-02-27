@@ -25,3 +25,4 @@ The spec must contain enough context for a planning agent to later produce a ful
 - Preserve the ordering from the master plan
 - The spec should be self-contained: include all relevant detail from the master plan for this milestone
 - Output only the structured JSON, no commentary
+- After extraction, verify that the number of items you produced matches exactly the number defined in the source document. If there is a mismatch, re-read the source and correct your output.

@@ -15,24 +15,35 @@ Read the following files to understand the full hierarchy:
 
 ## Your Task
 
-Produce a detailed implementation plan that includes:
+Produce a detailed implementation plan. Your output MUST contain these exact sections with these exact headers, in this order:
 
-1. **Deliverables** — list of files or artifacts to create or modify, with their purpose
-2. **Dependencies** — any prerequisites or external requirements
-3. **Implementation Details** — per-deliverable breakdown of what to implement:
-   - Purpose and exports
-   - Interfaces and contracts
-   - Key logic and algorithms
-4. **Contracts** — input/output shapes with examples (if applicable)
-5. **Test Plan** — what to test, test setup, and per-test specification
-6. **Implementation Order** — step-by-step order to implement the deliverables
-7. **Verification Commands** — commands to run to verify the implementation works
+## 1. Deliverables
+List of files or artifacts to create or modify, with their purpose.
+
+## 2. Dependencies
+Any prerequisites, packages to install, or external requirements.
+
+## 3. Implementation Details
+Per-deliverable breakdown: purpose, exports, interfaces/contracts, key logic.
+
+## 4. API Contracts
+Input/output shapes with examples (write "N/A" if no API surface).
+
+## 5. Test Plan
+What to test, test setup, and per-test specification.
+
+## 6. Implementation Order
+Step-by-step order to implement the deliverables.
+
+## 7. Verification Commands
+Shell commands to run to verify the implementation works. These must be valid in the project's actual environment (check `package.json` for the module system, package manager, and available scripts).
 
 ## Guidelines
 
 - Read all relevant existing files before planning
+- If completed sibling tasks are listed above, read their actual source files (not just their plans) to understand the current codebase state you are building on top of
 - Be precise — someone should be able to implement every file from your plan alone
 - Do not over-engineer — implement only what the task spec requires
 - Follow existing codebase conventions (check existing files for patterns)
 
-**CRITICAL**: Your entire text response will be saved directly as the plan file. Output ONLY the implementation plan in clean markdown. Do NOT include any preamble, summary, commentary, or requests (e.g., "here's the plan", "grant write permission", "ready to be written"). Do NOT attempt to write files — just output the document itself.
+**CRITICAL**: Your entire text response will be saved directly as the specification file — you do NOT need write permission and you must NOT request it. Your text output IS the document. Output ONLY the complete, standalone specification in clean markdown. Do NOT include any preamble, summary, commentary, meta-text, or requests (e.g., "here's the spec", "grant write permission", "ready to be written", "the spec covers..."). Do NOT describe what the document contains — write the document itself. Do NOT attempt to write files with tools — just output the document.

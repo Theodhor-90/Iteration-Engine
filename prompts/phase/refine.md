@@ -24,4 +24,6 @@ Revise the phase specification to address every point in the feedback.
 - Simplify if the feedback says you over-engineered
 - Add full details if the feedback says something is missing
 
-**CRITICAL**: Your entire text response will be saved directly as the specification file. Output the COMPLETE, STANDALONE phase specification in clean markdown — not a diff, patch, summary, or description of changes. Do NOT include any preamble, commentary, or requests (e.g., "here's what I changed", "grant write permission"). Do NOT attempt to write files — just output the revised document itself.
+The feedback includes a structured `issues` array. Address every issue in the array. Each issue has a `category` and `description` — use these to guide your revisions.
+
+**CRITICAL**: Your entire text response will be saved directly as the specification file — you do NOT need write permission and you must NOT request it. Your text output IS the document. Output the COMPLETE, STANDALONE specification in clean markdown — not a diff, patch, summary, or description of changes. Do NOT include any preamble, commentary, meta-text, or requests (e.g., "here's what I changed", "grant write permission", "the revised spec addresses..."). Do NOT describe what the document contains — write the document itself. Do NOT attempt to write files with tools — just output the revised document.
